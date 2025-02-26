@@ -9,13 +9,22 @@ namespace Player
         
         public override void OnNetworkSpawn()
         {
-            if(IsServer)
-                return;
-            
             if (IsOwner)
             {
-                Camera.main.gameObject.SetActive(false); // Ana kamerayı kapat
+                bool isSecondPlayer = OwnerClientId % 2 == 1;
+
+                playerCamera.transform.rotation = isSecondPlayer ? Quaternion.Euler(90, 0, 0) : Quaternion.Euler(90, 180, 0);
+                
+                if (Camera.main != null)
+                {
+                    Camera.main.gameObject.SetActive(false);
+                }
+                
                 playerCamera.SetActive(true);
+            }
+            else
+            {
+                playerCamera.SetActive(false);
             }
         }
     }

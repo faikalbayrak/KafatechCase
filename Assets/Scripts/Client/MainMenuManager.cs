@@ -4,18 +4,11 @@ using UnityEngine.UI;
 
 namespace Client
 {
-    public class MainMenuManager : NetworkBehaviour
+    public class MainMenuManager : MonoBehaviour
     {
-        [SerializeField] private Button startClientButton;
-
         private void Start()
         {
-            startClientButton.onClick.AddListener(StartClient);
-        }
-
-        private void StartClient()
-        {
-            NetworkManager.StartClient();
+            
         }
     }
 }
