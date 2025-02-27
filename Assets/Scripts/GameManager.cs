@@ -17,6 +17,7 @@ public class GameManager : NetworkBehaviour,IGameManager
     [SerializeField] private Transform enemyMainTowerSpawnPoint;
     [SerializeField] private Transform enemySide1TowerSpawnPoint;
     [SerializeField] private Transform enemySide2TowerSpawnPoint;
+    [SerializeField] private Transform gameOriginPoint;
     public List<NetworkObject> SpawnedTowers { get; private set; } = new List<NetworkObject>();
     public List<NetworkObject> SpawnedUnits { get; private set; } = new List<NetworkObject>();
     
@@ -37,13 +38,11 @@ public class GameManager : NetworkBehaviour,IGameManager
             }
         }
     }
-
     private void SpawnPlayer(ulong clientId)
     {
         GameObject player = Instantiate(playerPrefab, GetSpawnPosition(clientId), Quaternion.identity);
         player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
-
-        // Sadece oyuncu kendi kulelerini oluşturmalı!
+        
         SpawnTowers(clientId);
     }
 
@@ -57,30 +56,12 @@ public class GameManager : NetworkBehaviour,IGameManager
 
         // Main Tower
         SpawnTower(mainTowerPrefab, mainSpawnPoint, clientId);
-        // GameObject ownMainTower = Instantiate(mainTowerPrefab, mainSpawnPoint);
-        // ownMainTower.transform.localPosition = Vector3.zero;
-        // ownMainTower.transform.localRotation = Quaternion.identity;
-        // ownMainTower.transform.localScale = Vector3.one;
-        // ownMainTower.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
-        
 
         // Side Tower 1
         SpawnTower(sideTowerPrefab, side1SpawnPoint, clientId);
-        // GameObject ownSide1Tower = Instantiate(sideTowerPrefab, side1SpawnPoint);
-        // ownSide1Tower.transform.localPosition = Vector3.zero;
-        // ownSide1Tower.transform.localRotation = Quaternion.identity;
-        // ownSide1Tower.transform.localScale = Vector3.one;
-        // ownSide1Tower.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
         
-
         // Side Tower 2
         SpawnTower(sideTowerPrefab, side2SpawnPoint, clientId);
-        // GameObject ownSide2Tower = Instantiate(sideTowerPrefab, side2SpawnPoint);
-        // ownSide2Tower.transform.localPosition = Vector3.zero;
-        // ownSide2Tower.transform.localRotation = Quaternion.identity;
-        // ownSide2Tower.transform.localScale = Vector3.one;
-        // ownSide2Tower.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
-        
     }
     
     private void SpawnTower(GameObject prefab, Transform spawnPoint, ulong clientId)
@@ -100,5 +81,10 @@ public class GameManager : NetworkBehaviour,IGameManager
     private Vector3 GetSpawnPosition(ulong clientId)
     {
         return Vector3.zero;
+    }
+    
+    public Transform GetGameOriginPoint()
+    {
+        return gameOriginPoint;
     }
 }

@@ -11,10 +11,12 @@ namespace Player
         [SerializeField] private Sprite playerTowerSprite;
         [SerializeField] private Sprite enemyTowerSprite;
         [SerializeField] private GameObject unitPrefab;
+        [SerializeField] private Transform[] spawnPoints;
     
         private SpriteRenderer spriteRenderer;
         private ulong ownerClientId;
         private IObjectResolver _objectResolver;
+        private Transform gameOriginPoint;
 
         private void Awake()
         {
@@ -24,9 +26,16 @@ namespace Player
         [ServerRpc(RequireOwnership = false)]
         private void SpawnUnit_ServerRpc()
         {
-            Vector3 spawnPosition = transform.position + new Vector3(0,0.5f,0) + Vector3.forward * -2f;
+            var gameOriginPosition = gameOriginPoint.position;
+            Vector3 spawnPosition = Vector3.Distance(spawnPoints[0].position,gameOriginPosition) < 
+                                    Vector3.Distance(spawnPoints[1].position,gameOriginPosition) ? spawnPoints[0].position : spawnPoints[1].position;
             
             GameObject unit = Instantiate(unitPrefab, spawnPosition, Quaternion.identity);
+            if (unit.TryGetComponent<NetworkUnitController>(out var networkUnitController))
+            {
+                networkUnitController.SetObjectResolver(_objectResolver);
+            }
+                
             NetworkObject networkObject = unit.GetComponent<NetworkObject>();
             
             if (networkObject != null)
@@ -45,7 +54,6 @@ namespace Player
             
             SpawnUnit_ServerRpc();
         }
-
         
         public void SetOwner(ulong clientId)
         {
@@ -61,6 +69,8 @@ namespace Player
                 return;
             
             _objectResolver = objectResolver;
+
+            gameOriginPoint = _objectResolver.Resolve<GameManager>().GetGameOriginPoint();
         }
 
         [ClientRpc]

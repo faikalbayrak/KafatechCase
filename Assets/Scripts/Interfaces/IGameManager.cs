@@ -8,5 +8,6 @@ namespace Interfaces
     {
         public List<NetworkObject> SpawnedTowers => new List<NetworkObject>();
         public List<NetworkObject> SpawnedUnits => new List<NetworkObject>();
+        public Transform GetGameOriginPoint();
     }
 }
