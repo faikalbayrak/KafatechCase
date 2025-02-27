@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -5,7 +6,7 @@ namespace Player
 {
     public class NetworkGamePlayerController : NetworkBehaviour
     {
-        [SerializeField] private GameObject playerCamera;
+        [SerializeField] private Camera playerCamera;
         
         public override void OnNetworkSpawn()
         {
@@ -20,11 +21,48 @@ namespace Player
                     Camera.main.gameObject.SetActive(false);
                 }
                 
-                playerCamera.SetActive(true);
+                playerCamera.gameObject.SetActive(true);
             }
             else
             {
-                playerCamera.SetActive(false);
+                playerCamera.gameObject.SetActive(false);
+            }
+        }
+
+        private void Update()
+        {
+            if (!IsOwner)
+                return;
+            
+            if(Input.GetMouseButtonDown(0))
+                CheckClick();
+        }
+        
+        private void CheckClick()
+        {
+            Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            // Debug için ray'i çiz (sarı renk, 2 saniye)
+            Debug.DrawRay(ray.origin, ray.direction * 1000, Color.yellow, 2f);
+
+            Debug.LogError("Clicked");
+
+            // LayerMask.GetMask kullanılarak düzeltilmiş (LayerMask.NameToLayer yerine)
+            if (Physics.Raycast(ray, out hit, 1000, LayerMask.GetMask("Tower")))
+            {
+                Debug.LogError("Hit tower");
+
+                Tower tower = hit.collider.GetComponentInParent<Tower>();
+                if (tower != null)
+                {
+                    Debug.LogError("Hit tower 2");
+                    tower.SpawnUnit();
+                }
+            }
+            else
+            {
+                Debug.LogError("Did not hit tower");
             }
         }
     }

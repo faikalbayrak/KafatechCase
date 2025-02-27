@@ -1,3 +1,4 @@
+using Interfaces;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -5,7 +6,7 @@ using UnityEngine.UI;
 
 namespace Client
 {
-    public class ClientManager : NetworkBehaviour
+    public class ClientManager : NetworkBehaviour, IClientManager
     {
         [SerializeField] private Button startClientButton;
         [SerializeField] private Button startServerButton;

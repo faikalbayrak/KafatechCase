@@ -387,7 +387,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   parentReference:
-    TypeName: 
+    TypeName: MainSceneLifetimeScope
   autoRun: 1
   autoInjectGameObjects:
   - {fileID: 1670464611}

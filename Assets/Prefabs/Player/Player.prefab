@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  GlobalObjectIdHash: 831345498
+  GlobalObjectIdHash: 2307864277
   InScenePlacedSourceGlobalObjectIdHash: 2307864277
   DeferredDespawnTick: 0
   Ownership: 1
@@ -72,7 +72,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  playerCamera: {fileID: 6793242961588316871}
+  playerCamera: {fileID: 3986202239604241198}
 --- !u!1 &6793242961588316871
 GameObject:
   m_ObjectHideFlags: 0
@@ -84,6 +84,7 @@ GameObject:
   - component: {fileID: 4914117312470692173}
   - component: {fileID: 3986202239604241198}
   - component: {fileID: 8755748070533537758}
+  - component: {fileID: 8330681027931308708}
   - component: {fileID: 6318586065698195991}
   m_Layer: 0
   m_Name: Camera
@@ -166,6 +167,22 @@ AudioListener:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6793242961588316871}
   m_Enabled: 1
+--- !u!114 &8330681027931308708
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6793242961588316871}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c49b4cc203aa6414fae5c798d1d0e7d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EventMask:
+    serializedVersion: 2
+    m_Bits: 64
+  m_MaxRayIntersections: 0
 --- !u!114 &6318586065698195991
 MonoBehaviour:
   m_ObjectHideFlags: 0
