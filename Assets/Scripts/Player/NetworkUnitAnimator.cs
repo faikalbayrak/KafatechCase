@@ -10,7 +10,8 @@ namespace Player
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private Sprite[] walkSprites;
         [SerializeField] private Sprite[] attackSprites;
-        [SerializeField] private float frameRate = 0.1f;
+        [SerializeField] private float walkingFrameRate = 0.1f;
+        [SerializeField] private float attackFrameRate = 0.05f;
 
         private int directionIndex = 0;
         private float animationTimer = 0;
@@ -38,7 +39,7 @@ namespace Player
             {
                 if (newState == AnimationState.Idle)
                 {
-                    spriteRenderer.sprite = walkSprites[directionIndex * 8]; // Idle için ilk frame
+                    spriteRenderer.sprite = walkSprites[directionIndex * 8];
                 }
             };
         }
@@ -47,25 +48,13 @@ namespace Player
         {
             if (IsServer)
             {
-                UpdateAnimationState();
                 UpdateDirectionIndex();
             }
         }
+
         private void FixedUpdate()
         {
             AnimateSprite();
-        }
-
-        private void UpdateAnimationState()
-        {
-            if (_agent.velocity.magnitude < 0.1f)
-            {
-                SetAnimationState(AnimationState.Idle);
-            }
-            else
-            {
-                SetAnimationState(AnimationState.Walk);
-            }
         }
 
         private void UpdateDirectionIndex()
@@ -79,27 +68,48 @@ namespace Player
             }
         }
 
+        private void UpdateDirection(int newDirection)
+        {
+            directionIndex = newDirection;
+        }
+
         private void AnimateSprite()
         {
-            if (currentState.Value == AnimationState.Idle) return;
+            if (currentState.Value == AnimationState.Idle) 
+            {
+                if (walkSprites.Length > directionIndex * 8)
+                    spriteRenderer.sprite = walkSprites[directionIndex * 8];
+                return;
+            }
 
+            float frameRate = currentState.Value == AnimationState.Attack ? attackFrameRate : walkingFrameRate;
             animationTimer += Time.fixedDeltaTime;
+
             if (animationTimer >= frameRate)
             {
                 animationTimer = 0;
                 currentFrame = (currentFrame + 1) % 8;
 
                 int spriteIndex = directionIndex * 8 + currentFrame;
-                if (spriteIndex >= 64) return;
-
-                spriteRenderer.sprite = currentState.Value == AnimationState.Walk ? walkSprites[spriteIndex] : attackSprites[spriteIndex];
+                if (walkSprites.Length > spriteIndex && attackSprites.Length > spriteIndex)
+                {
+                    switch (currentState.Value)
+                    {
+                        case AnimationState.Walk:
+                            spriteRenderer.sprite = walkSprites[spriteIndex];
+                            break;
+                        case AnimationState.Attack:
+                            spriteRenderer.sprite = attackSprites[spriteIndex];
+                            break;
+                    }
+                }
             }
         }
 
         private int GetDirectionIndex(Vector3 moveDirection)
         {
             Vector3 reverseDirection = -moveDirection;
-            
+
             float angle = Mathf.Atan2(reverseDirection.z, reverseDirection.x) * Mathf.Rad2Deg;
             if (angle < 0) angle += 360;
 
@@ -113,22 +123,48 @@ namespace Player
             return 1;
         }
 
-        
-        private void SetAnimationState(AnimationState newState)
+        public void SetAttackState()
         {
-            currentState.Value = newState;
-        }
-        
-        private void UpdateDirection(int newDirection)
-        {
-            networkDirectionIndex.Value = newDirection;
+            if (IsServer)
+            {
+                currentState.Value = AnimationState.Attack;
+                currentFrame = 0;
+                animationTimer = 0;
+            }
+            else
+            {
+                SetAttackStateServerRpc();
+            }
         }
 
-        
-        public void SetAttackState(bool isAttacking)
+        [ServerRpc]
+        private void SetAttackStateServerRpc()
         {
-            currentState.Value = isAttacking ? AnimationState.Attack : AnimationState.Walk;
+            currentState.Value = AnimationState.Attack;
             currentFrame = 0;
+            animationTimer = 0;
+        }
+
+        public void SetWalkState(bool isWalking)
+        {
+            if (IsServer)
+            {
+                currentState.Value = isWalking ? AnimationState.Walk : AnimationState.Idle;
+                currentFrame = 0;
+                animationTimer = 0;
+            }
+            else
+            {
+                SetWalkStateServerRpc(isWalking);
+            }
+        }
+
+        [ServerRpc]
+        private void SetWalkStateServerRpc(bool isWalking)
+        {
+            currentState.Value = isWalking ? AnimationState.Walk : AnimationState.Idle;
+            currentFrame = 0;
+            animationTimer = 0;
         }
     }
 }

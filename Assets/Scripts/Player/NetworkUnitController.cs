@@ -10,24 +10,25 @@ namespace Player
 {
     public class NetworkUnitController : NetworkBehaviour
     {
-        [SerializeField] private float attackRange = 5.0f;
-        [SerializeField] private float detectionRadius = 10f;
-        [SerializeField] private LayerMask targetLayer;
+        [SerializeField] private float attackRange = 5.1f;
         [SerializeField] private int damage = 10;
         [SerializeField] private float attackCooldown = 1.5f;
 
         private NavMeshAgent agent;
+        private NetworkUnitAnimator animator;
         private Transform target;
         private float lastAttackTime;
-        
+
         private IObjectResolver _objectResolver;
         private Transform gameOriginPoint;
         private bool dependencyResolved = false;
         private IGameManager gameManager;
         private List<NetworkObject> opponentTowers = new List<NetworkObject>();
+
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            animator = GetComponent<NetworkUnitAnimator>();
             agent.updatePosition = true;
             agent.updateRotation = true;
         }
@@ -46,15 +47,14 @@ namespace Player
 
             if (!dependencyResolved)
                 return;
-            
-            
+
             FindTarget();
         }
-        
-        public void SetObjectResolver(IObjectResolver objectResolver,ulong clientId)
+
+        public void SetObjectResolver(IObjectResolver objectResolver, ulong clientId)
         {
             _objectResolver = objectResolver;
-            
+
             if (_objectResolver != null)
             {
                 gameManager = _objectResolver.Resolve<IGameManager>();
@@ -66,28 +66,22 @@ namespace Player
 
         private void FindTarget()
         {
-            NetworkObject closestEnemyUnit = null;
-            NetworkObject closestEnemyTower = null;
-            
-            closestEnemyUnit = GetClosestEnemyUnit();
+            NetworkObject closestEnemyUnit = GetClosestEnemyUnit();
+            NetworkObject closestEnemyTower = GetClosestEnemyTower();
             
             if (closestEnemyUnit != null)
             {
                 target = closestEnemyUnit.transform;
             }
+            else if (closestEnemyTower != null)
+            {
+                target = closestEnemyTower.transform;
+            }
             else
             {
-                closestEnemyTower = GetClosestEnemyTower();
-                
-                if (closestEnemyTower != null)
-                {
-                    target = closestEnemyTower.transform;
-                }
-                else
-                {
-                    target = null;
-                }
+                target = null;
             }
+
             
             if (target != null)
             {
@@ -98,37 +92,50 @@ namespace Player
                 {
                     TryAttack();
                 }
+                else
+                {
+                    animator.SetWalkState(true);
+                }
             }
             else
             {
-                Debug.Log("Hiçbir hedef bulunamadı.");
+                animator.SetWalkState(false);
             }
         }
 
         private void TryAttack()
         {
             if (target == null) return;
-            
+
             if (Time.time - lastAttackTime >= attackCooldown)
             {
                 lastAttackTime = Time.time;
-            
-                if (target.TryGetComponent(out NetworkHealthController enemyObject))
-                {
-                    enemyObject.TakeDamage(damage);
-                }
+                animator.SetAttackState();
+
+                // Eğer animasyon bitmeden saldırı tekrar başlıyorsa burada bir zamanlayıcı ekleyerek kontrol et.
+                Invoke(nameof(DealDamage), 0.5f); // 0.5 saniye sonra hasar ver
             }
         }
-        
+
+        private void DealDamage()
+        {
+            if (target == null) return;
+            if (target.TryGetComponent(out NetworkHealthController enemyObject))
+            {
+                enemyObject.TakeDamage(damage);
+            }
+        }
+
         private NetworkObject GetClosestEnemyTower()
         {
             NetworkObject closestTower = null;
             float closestDistance = float.MaxValue;
+
             foreach (var tower in opponentTowers)
             {
                 if (tower == null || !tower.IsSpawned)
                     continue;
-                
+
                 float distance = Vector3.Distance(transform.position, tower.transform.position);
                 if (distance < closestDistance)
                 {
@@ -145,27 +152,19 @@ namespace Player
             NetworkObject closestUnit = null;
             var spawnedUnits = gameManager.SpawnedUnits;
             float closestDistance = float.MaxValue;
-            
+
             Vector3 currentPosition = transform.position;
-            
             NetworkObject currentUnit = GetComponent<NetworkObject>();
-            
             ulong currentOwnerId = currentUnit.OwnerClientId;
 
             foreach (var unitRef in spawnedUnits)
             {
                 if (unitRef.TryGet(out NetworkObject unit))
                 {
-                    if (unit == currentUnit)
+                    if (unit == currentUnit || unit.OwnerClientId == currentOwnerId)
                         continue;
-                    
-                    if (unit.OwnerClientId == currentOwnerId)
-                        continue;
-                    
-                    Vector3 unitPosition = unit.transform.position;
-                    
-                    float distance = Vector3.Distance(currentPosition, unitPosition);
-                    
+
+                    float distance = Vector3.Distance(currentPosition, unit.transform.position);
                     if (distance < closestDistance)
                     {
                         closestDistance = distance;
