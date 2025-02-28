@@ -13,10 +13,13 @@ namespace Player
         [SerializeField] private float walkingFrameRate = 0.1f;
         [SerializeField] private float attackFrameRate = 0.05f;
 
+        private float attackCooldownTimer = 0f;
+        private float attackCooldownDuration = 1.5f;
         private int directionIndex = 0;
         private float animationTimer = 0;
         private int currentFrame = 0;
         private NavMeshAgent _agent;
+        private NetworkUnitController _unitController;
 
         private NetworkVariable<AnimationState> currentState = new NetworkVariable<AnimationState>(
             AnimationState.Idle, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -29,6 +32,7 @@ namespace Player
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
+            _unitController = GetComponent<NetworkUnitController>();
         }
 
         public override void OnNetworkSpawn()
@@ -83,6 +87,13 @@ namespace Player
             }
 
             float frameRate = currentState.Value == AnimationState.Attack ? attackFrameRate : walkingFrameRate;
+            
+            if (currentState.Value == AnimationState.Attack && attackCooldownTimer > 0)
+            {
+                attackCooldownTimer -= Time.fixedDeltaTime;
+                return;
+            }
+
             animationTimer += Time.fixedDeltaTime;
 
             if (animationTimer >= frameRate)
@@ -100,6 +111,16 @@ namespace Player
                             break;
                         case AnimationState.Attack:
                             spriteRenderer.sprite = attackSprites[spriteIndex];
+                            
+                            if (currentFrame == 7)
+                            {
+                                if (_unitController.CanAttack)
+                                {
+                                    _unitController.DealDamage();
+                                }
+                                
+                                attackCooldownTimer = attackCooldownDuration;
+                            }
                             break;
                     }
                 }

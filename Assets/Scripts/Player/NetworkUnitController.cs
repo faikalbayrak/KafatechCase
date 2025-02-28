@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Interfaces;
@@ -12,18 +13,23 @@ namespace Player
     {
         [SerializeField] private float attackRange = 5.1f;
         [SerializeField] private int damage = 10;
-        [SerializeField] private float attackCooldown = 1.5f;
+
+        [SerializeField] private GameObject hpBarCanvas;
+        [SerializeField] private Transform hpBarPosPositive;
+        [SerializeField] private Transform hpBarPosNegative;
 
         private NavMeshAgent agent;
         private NetworkUnitAnimator animator;
         private Transform target;
-        private float lastAttackTime;
 
         private IObjectResolver _objectResolver;
         private Transform gameOriginPoint;
         private bool dependencyResolved = false;
         private IGameManager gameManager;
         private List<NetworkObject> opponentTowers = new List<NetworkObject>();
+        private bool _canAttack = false;
+        
+        public bool CanAttack => _canAttack;
 
         private void Awake()
         {
@@ -31,6 +37,11 @@ namespace Player
             animator = GetComponent<NetworkUnitAnimator>();
             agent.updatePosition = true;
             agent.updateRotation = true;
+        }
+
+        private void Start()
+        {
+            SetHpBarPosition();
         }
 
         public override void OnNetworkSpawn()
@@ -47,7 +58,7 @@ namespace Player
 
             if (!dependencyResolved)
                 return;
-
+            
             FindTarget();
         }
 
@@ -63,12 +74,19 @@ namespace Player
                 dependencyResolved = true;
             }
         }
+        
+        private void SetHpBarPosition()
+        {
+            if (hpBarCanvas == null) return;
+
+            hpBarCanvas.transform.position = OwnerClientId % 2 == 0 ? hpBarPosPositive.position : hpBarPosNegative.position;
+        }
 
         private void FindTarget()
         {
             NetworkObject closestEnemyUnit = GetClosestEnemyUnit();
             NetworkObject closestEnemyTower = GetClosestEnemyTower();
-            
+
             if (closestEnemyUnit != null)
             {
                 target = closestEnemyUnit.transform;
@@ -82,42 +100,45 @@ namespace Player
                 target = null;
             }
 
-            
             if (target != null)
             {
                 agent.SetDestination(target.position);
-
                 float distance = Vector3.Distance(transform.position, target.position);
+
                 if (distance <= attackRange)
                 {
-                    TryAttack();
+                    _canAttack = true;
+                    SetCanAttackClientRpc(true);
+                    animator.SetAttackState();
                 }
                 else
                 {
+                    _canAttack = false;
+                    SetCanAttackClientRpc(false);
                     animator.SetWalkState(true);
                 }
             }
             else
             {
+                _canAttack = false;
+                SetCanAttackClientRpc(false);
                 animator.SetWalkState(false);
             }
         }
 
-        private void TryAttack()
+        [ClientRpc]
+        public void SetCanAttackClientRpc(bool canAttack)
         {
-            if (target == null) return;
-
-            if (Time.time - lastAttackTime >= attackCooldown)
-            {
-                lastAttackTime = Time.time;
-                animator.SetAttackState();
-
-                // Eğer animasyon bitmeden saldırı tekrar başlıyorsa burada bir zamanlayıcı ekleyerek kontrol et.
-                Invoke(nameof(DealDamage), 0.5f); // 0.5 saniye sonra hasar ver
-            }
+            _canAttack = canAttack;
         }
 
-        private void DealDamage()
+        public void DealDamage()
+        {
+            DealDamageServerRpc();
+        }
+        
+        [ServerRpc]
+        private void DealDamageServerRpc()
         {
             if (target == null) return;
             if (target.TryGetComponent(out NetworkHealthController enemyObject))
