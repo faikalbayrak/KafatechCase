@@ -7,7 +7,7 @@ namespace Player
     public class NetworkGamePlayerController : NetworkBehaviour
     {
         [SerializeField] private Camera playerCamera;
-        
+        private ulong _clientId = 0;
         public override void OnNetworkSpawn()
         {
             if (IsOwner)
@@ -57,6 +57,16 @@ namespace Player
             {
                 Debug.LogError("Did not hit tower");
             }
+        }
+        
+        public void SetOwnerClientId(ulong clientId)
+        {
+            _clientId = clientId;
+        }
+        
+        public ulong GetOwnerClientId()
+        {
+            return _clientId;
         }
     }
 }

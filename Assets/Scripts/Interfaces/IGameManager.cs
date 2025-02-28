@@ -6,9 +6,11 @@ namespace Interfaces
 {
     public interface IGameManager
     {
-        public List<NetworkObject> SpawnedTowers => new List<NetworkObject>();
-        public List<NetworkObject> SpawnedUnits => new List<NetworkObject>();
+        public NetworkList<NetworkObjectReference> SpawnedPlayers => new NetworkList<NetworkObjectReference>();
+        public NetworkList<NetworkObjectReference> SpawnedTowers => new NetworkList<NetworkObjectReference>();
+        public NetworkList<NetworkObjectReference> SpawnedUnits => new NetworkList<NetworkObjectReference>();
         public Transform GetGameOriginPoint();
         public List<NetworkObject> GetOpponentTowers(ulong myClientId);
+        public void RegisterUnit(NetworkObject unit);
     }
 }

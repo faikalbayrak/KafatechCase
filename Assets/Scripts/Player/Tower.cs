@@ -41,6 +41,8 @@ namespace Player
             if (networkObject != null)
             {
                 networkObject.SpawnWithOwnership(clientId);
+                
+                _objectResolver.Resolve<IGameManager>().RegisterUnit(networkObject);
             }
             else
             {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Interfaces;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,10 +10,9 @@ namespace Player
 {
     public class NetworkUnitController : NetworkBehaviour
     {
-        [SerializeField] private float attackRange = 2.0f;
+        [SerializeField] private float attackRange = 5.0f;
         [SerializeField] private float detectionRadius = 10f;
         [SerializeField] private LayerMask targetLayer;
-        [SerializeField] private int health = 100;
         [SerializeField] private int damage = 10;
         [SerializeField] private float attackCooldown = 1.5f;
 
@@ -47,23 +47,8 @@ namespace Player
             if (!dependencyResolved)
                 return;
             
-            // if (target != null)
-            // {
-            //     agent.SetDestination(target.position);
-            //
-            //     float distance = Vector3.Distance(transform.position, target.position);
-            //     if (distance <= attackRange)
-            //     {
-            //         TryAttack();
-            //     }
-            // }
-            var closestTower = GetClosestTower();
-            if(closestTower != null)
-                agent.SetDestination(closestTower.transform.position);
-            else
-            {
-                agent.SetDestination(gameOriginPoint.position);
-            }
+            
+            FindTarget();
         }
         
         public void SetObjectResolver(IObjectResolver objectResolver,ulong clientId)
@@ -76,35 +61,66 @@ namespace Player
                 gameOriginPoint = gameManager.GetGameOriginPoint();
                 opponentTowers = gameManager.GetOpponentTowers(clientId);
                 dependencyResolved = true;
-                Debug.LogError("Dependency resolved");
             }
         }
 
         private void FindTarget()
         {
-            // Collider[] colliders = Physics.OverlapSphere(transform.position, detectionRadius, targetLayer);
-            // if (colliders.Length > 0)
-            // {
-            //     target = colliders[0].transform; // İlk bulunan hedefi belirle
-            // }
+            NetworkObject closestEnemyUnit = null;
+            NetworkObject closestEnemyTower = null;
+            
+            closestEnemyUnit = GetClosestEnemyUnit();
+            
+            if (closestEnemyUnit != null)
+            {
+                target = closestEnemyUnit.transform;
+            }
+            else
+            {
+                closestEnemyTower = GetClosestEnemyTower();
+                
+                if (closestEnemyTower != null)
+                {
+                    target = closestEnemyTower.transform;
+                }
+                else
+                {
+                    target = null;
+                }
+            }
+            
+            if (target != null)
+            {
+                agent.SetDestination(target.position);
+
+                float distance = Vector3.Distance(transform.position, target.position);
+                if (distance <= attackRange)
+                {
+                    TryAttack();
+                }
+            }
+            else
+            {
+                Debug.Log("Hiçbir hedef bulunamadı.");
+            }
         }
 
         private void TryAttack()
         {
-            // if (target == null) return;
-            //
-            // if (Time.time - lastAttackTime >= attackCooldown)
-            // {
-            //     lastAttackTime = Time.time;
-            //
-            //     if (target.TryGetComponent(out NetworkUnitController enemyUnit))
-            //     {
-            //         enemyUnit.TakeDamage(damage);
-            //     }
-            // }
+            if (target == null) return;
+            
+            if (Time.time - lastAttackTime >= attackCooldown)
+            {
+                lastAttackTime = Time.time;
+            
+                if (target.TryGetComponent(out NetworkHealthController enemyObject))
+                {
+                    enemyObject.TakeDamage(damage);
+                }
+            }
         }
         
-        private NetworkObject GetClosestTower()
+        private NetworkObject GetClosestEnemyTower()
         {
             NetworkObject closestTower = null;
             float closestDistance = float.MaxValue;
@@ -124,23 +140,41 @@ namespace Player
             return closestTower;
         }
 
-        [ServerRpc(RequireOwnership = false)]
-        public void TakeDamageServerRpc(int damage)
+        private NetworkObject GetClosestEnemyUnit()
         {
-            health -= damage;
-            if (health <= 0)
-            {
-                Die();
-            }
-        }
+            NetworkObject closestUnit = null;
+            var spawnedUnits = gameManager.SpawnedUnits;
+            float closestDistance = float.MaxValue;
+            
+            Vector3 currentPosition = transform.position;
+            
+            NetworkObject currentUnit = GetComponent<NetworkObject>();
+            
+            ulong currentOwnerId = currentUnit.OwnerClientId;
 
-        private void Die()
-        {
-            NetworkObject networkObject = GetComponent<NetworkObject>();
-            if (networkObject != null && networkObject.IsSpawned)
+            foreach (var unitRef in spawnedUnits)
             {
-                networkObject.Despawn();
+                if (unitRef.TryGet(out NetworkObject unit))
+                {
+                    if (unit == currentUnit)
+                        continue;
+                    
+                    if (unit.OwnerClientId == currentOwnerId)
+                        continue;
+                    
+                    Vector3 unitPosition = unit.transform.position;
+                    
+                    float distance = Vector3.Distance(currentPosition, unitPosition);
+                    
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        closestUnit = unit;
+                    }
+                }
             }
+
+            return closestUnit;
         }
     }
 }
