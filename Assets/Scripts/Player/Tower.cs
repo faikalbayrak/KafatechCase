@@ -24,7 +24,7 @@ namespace Player
         }
 
         [ServerRpc(RequireOwnership = false)]
-        private void SpawnUnit_ServerRpc()
+        private void SpawnUnit_ServerRpc(ulong clientId = 0)
         {
             var gameOriginPosition = gameOriginPoint.position;
             Vector3 spawnPosition = Vector3.Distance(spawnPoints[0].position,gameOriginPosition) < 
@@ -33,14 +33,14 @@ namespace Player
             GameObject unit = Instantiate(unitPrefab, spawnPosition, Quaternion.identity);
             if (unit.TryGetComponent<NetworkUnitController>(out var networkUnitController))
             {
-                networkUnitController.SetObjectResolver(_objectResolver);
+                networkUnitController.SetObjectResolver(_objectResolver, clientId);
             }
                 
             NetworkObject networkObject = unit.GetComponent<NetworkObject>();
             
             if (networkObject != null)
             {
-                networkObject.Spawn(true);
+                networkObject.SpawnWithOwnership(clientId);
             }
             else
             {
@@ -52,7 +52,7 @@ namespace Player
         {
             if (!IsOwner) return;
             
-            SpawnUnit_ServerRpc();
+            SpawnUnit_ServerRpc(NetworkManager.LocalClient.ClientId);
         }
         
         public void SetOwner(ulong clientId)
@@ -61,6 +61,11 @@ namespace Player
 
             ownerClientId = clientId;
             SetOwnerClientRpc(ownerClientId);
+        }
+        
+        public ulong GetOwner()
+        {
+            return ownerClientId;
         }
         
         public void SetObjectResolver(IObjectResolver objectResolver)

@@ -42,21 +42,14 @@ namespace Player
         {
             Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-
-            // Debug için ray'i çiz (sarı renk, 2 saniye)
-            Debug.DrawRay(ray.origin, ray.direction * 1000, Color.yellow, 2f);
-
-            Debug.LogError("Clicked");
-
-            // LayerMask.GetMask kullanılarak düzeltilmiş (LayerMask.NameToLayer yerine)
+            
+            //Debug.DrawRay(ray.origin, ray.direction * 1000, Color.yellow, 2f);
+            
             if (Physics.Raycast(ray, out hit, 1000, LayerMask.GetMask("Tower")))
             {
-                Debug.LogError("Hit tower");
-
                 Tower tower = hit.collider.GetComponentInParent<Tower>();
                 if (tower != null)
                 {
-                    Debug.LogError("Hit tower 2");
                     tower.SpawnUnit();
                 }
             }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Interfaces;
 using Unity.Netcode;
 using UnityEngine;
@@ -8,12 +9,12 @@ namespace Player
 {
     public class NetworkUnitController : NetworkBehaviour
     {
-        [SerializeField] private float attackRange = 2.0f;  // Saldırı menzili
-        [SerializeField] private float detectionRadius = 10f; // Hedef algılama yarıçapı
-        [SerializeField] private LayerMask targetLayer; // Hedef olabilecek diğer unit'ler
-        [SerializeField] private int health = 100; // Unit canı
-        [SerializeField] private int damage = 10;  // Unit saldırı gücü
-        [SerializeField] private float attackCooldown = 1.5f; // Saldırı aralığı
+        [SerializeField] private float attackRange = 2.0f;
+        [SerializeField] private float detectionRadius = 10f;
+        [SerializeField] private LayerMask targetLayer;
+        [SerializeField] private int health = 100;
+        [SerializeField] private int damage = 10;
+        [SerializeField] private float attackCooldown = 1.5f;
 
         private NavMeshAgent agent;
         private Transform target;
@@ -22,22 +23,26 @@ namespace Player
         private IObjectResolver _objectResolver;
         private Transform gameOriginPoint;
         private bool dependencyResolved = false;
+        private IGameManager gameManager;
+        private List<NetworkObject> opponentTowers = new List<NetworkObject>();
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
+            agent.updatePosition = true;
+            agent.updateRotation = true;
         }
 
         public override void OnNetworkSpawn()
         {
-            if (IsServer)  // Hareket ve saldırı sadece sunucuda işlenir
+            if (IsServer)
             {
-                InvokeRepeating(nameof(FindTarget), 0, 1f); // Her saniye hedef arar
+                InvokeRepeating(nameof(FindTarget), 0, 1f);
             }
         }
 
         private void Update()
         {
-            if (!IsServer) return; // Sunucu olmayanlar hareket ve saldırıyı işlemez
+            if (!IsServer) return;
 
             if (!dependencyResolved)
                 return;
@@ -52,19 +57,26 @@ namespace Player
             //         TryAttack();
             //     }
             // }
-            
-            agent.SetDestination(gameOriginPoint.position);
+            var closestTower = GetClosestTower();
+            if(closestTower != null)
+                agent.SetDestination(closestTower.transform.position);
+            else
+            {
+                agent.SetDestination(gameOriginPoint.position);
+            }
         }
         
-        public void SetObjectResolver(IObjectResolver objectResolver)
+        public void SetObjectResolver(IObjectResolver objectResolver,ulong clientId)
         {
             _objectResolver = objectResolver;
             
             if (_objectResolver != null)
             {
-                gameOriginPoint = _objectResolver.Resolve<IGameManager>().GetGameOriginPoint();
-                
+                gameManager = _objectResolver.Resolve<IGameManager>();
+                gameOriginPoint = gameManager.GetGameOriginPoint();
+                opponentTowers = gameManager.GetOpponentTowers(clientId);
                 dependencyResolved = true;
+                Debug.LogError("Dependency resolved");
             }
         }
 
@@ -91,23 +103,43 @@ namespace Player
             //     }
             // }
         }
+        
+        private NetworkObject GetClosestTower()
+        {
+            NetworkObject closestTower = null;
+            float closestDistance = float.MaxValue;
+            foreach (var tower in opponentTowers)
+            {
+                if (tower == null || !tower.IsSpawned)
+                    continue;
+                
+                float distance = Vector3.Distance(transform.position, tower.transform.position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestTower = tower;
+                }
+            }
 
-        // [ServerRpc(RequireOwnership = false)]
-        // public void TakeDamage(int damage)
-        // {
-        //     health -= damage;
-        //     if (health <= 0)
-        //     {
-        //         Die();
-        //     }
-        // }
+            return closestTower;
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        public void TakeDamageServerRpc(int damage)
+        {
+            health -= damage;
+            if (health <= 0)
+            {
+                Die();
+            }
+        }
 
         private void Die()
         {
             NetworkObject networkObject = GetComponent<NetworkObject>();
             if (networkObject != null && networkObject.IsSpawned)
             {
-                networkObject.Despawn(); // Ağda unit'i kaldır
+                networkObject.Despawn();
             }
         }
     }

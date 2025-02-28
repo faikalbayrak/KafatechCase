@@ -87,4 +87,24 @@ public class GameManager : NetworkBehaviour,IGameManager
     {
         return gameOriginPoint;
     }
+    
+    public List<NetworkObject> GetOpponentTowers(ulong myClientId)
+    {
+        List<NetworkObject> opponentTowers = new List<NetworkObject>();
+        Debug.LogError("spawned towers: " + SpawnedTowers.Count);
+        foreach (var tower in SpawnedTowers)
+        {
+            var networkObject = tower.GetComponent<NetworkObject>();
+            if (networkObject != null)
+            {
+                if (networkObject.OwnerClientId != myClientId)
+                {
+                    opponentTowers.Add(tower);
+                }
+            }
+            
+        }
+        Debug.LogError("opponentTowers towers: " + opponentTowers.Count);
+        return opponentTowers;
+    }
 }
