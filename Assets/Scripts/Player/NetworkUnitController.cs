@@ -20,7 +20,7 @@ namespace Player
 
         private NavMeshAgent agent;
         private NetworkUnitAnimator animator;
-        private Transform target;
+        private Transform _target;
 
         private IObjectResolver _objectResolver;
         private Transform gameOriginPoint;
@@ -28,8 +28,11 @@ namespace Player
         private IGameManager gameManager;
         private List<NetworkObject> opponentTowers = new List<NetworkObject>();
         private bool _canAttack = false;
+        private Vector3 bulletTargetPosition;
         
+        public Vector3 BulletTargetPosition => bulletTargetPosition;
         public bool CanAttack => _canAttack;
+        public Transform Target => _target;
 
         private void Awake()
         {
@@ -89,21 +92,23 @@ namespace Player
 
             if (closestEnemyUnit != null)
             {
-                target = closestEnemyUnit.transform;
+                _target = closestEnemyUnit.transform;
             }
             else if (closestEnemyTower != null)
             {
-                target = closestEnemyTower.transform;
+                _target = closestEnemyTower.transform;
             }
             else
             {
-                target = null;
+                _target = null;
             }
+            
+            SetTargetPositionClientRpc(_target != null ? _target.position : Vector3.zero);
 
-            if (target != null)
+            if (_target != null)
             {
-                agent.SetDestination(target.position);
-                float distance = Vector3.Distance(transform.position, target.position);
+                agent.SetDestination(_target.position);
+                float distance = Vector3.Distance(transform.position, _target.position);
 
                 if (distance <= attackRange)
                 {
@@ -131,17 +136,26 @@ namespace Player
         {
             _canAttack = canAttack;
         }
-
-        public void DealDamage()
+        
+        [ClientRpc]
+        public void SetTargetPositionClientRpc(Vector3 targetPosition)
         {
-            DealDamageServerRpc();
+            bulletTargetPosition = targetPosition;
+        }
+
+        public void DealDamage(float delay = 0)
+        {
+            if(delay > 0)
+                Invoke(nameof(DealDamageServerRpc), delay);
+            else
+                DealDamageServerRpc();
         }
         
         [ServerRpc]
         private void DealDamageServerRpc()
         {
-            if (target == null) return;
-            if (target.TryGetComponent(out NetworkHealthController enemyObject))
+            if (_target == null) return;
+            if (_target.TryGetComponent(out NetworkHealthController enemyObject))
             {
                 enemyObject.TakeDamage(damage);
             }

@@ -201,7 +201,6 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   attackRange: 8.1
   damage: 10
-  attackCooldown: 1.5
   hpBarCanvas: {fileID: 5562268500360825289}
   hpBarPosPositive: {fileID: 7221810386598796737}
   hpBarPosNegative: {fileID: 4424120946202623095}
@@ -366,6 +365,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 6de1a66057b53e0439b00584439eba80, type: 3}
   walkingFrameRate: 0.1
   attackFrameRate: 0.05
+  bulletPrefab: {fileID: 9116667076469660502, guid: c977bc5de2f2448448d63a19215179f9, type: 3}
 --- !u!1 &5095874586914983158
 GameObject:
   m_ObjectHideFlags: 0
