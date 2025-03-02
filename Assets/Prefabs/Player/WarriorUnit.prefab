@@ -199,7 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  attackRange: 8.1
+  attackRange: 8
   damage: 10
   hpBarCanvas: {fileID: 5562268500360825289}
   hpBarPosPositive: {fileID: 7221810386598796737}
@@ -217,7 +217,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 200
+  maxHealth: 100
   customHealthBar: {fileID: 1957934275895154882}
 --- !u!114 &6784844269403053259
 MonoBehaviour:

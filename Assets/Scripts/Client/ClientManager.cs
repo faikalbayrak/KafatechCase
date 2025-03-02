@@ -1,3 +1,4 @@
+using System;
 using Interfaces;
 using Unity.Netcode;
 using UnityEngine;
@@ -10,7 +11,13 @@ namespace Client
     {
         [SerializeField] private Button startClientButton;
         [SerializeField] private Button startServerButton;
-        
+        private GameObject canvasGo;
+
+        private void Awake()
+        {
+            canvasGo = startClientButton.transform.parent.gameObject;
+        }
+
         private void Start()
         {
             startClientButton.onClick.AddListener(StartClient);
@@ -28,6 +35,7 @@ namespace Client
             
             startClientButton.gameObject.SetActive(false);
             startServerButton.gameObject.SetActive(false);
+            canvasGo.SetActive(false);
         }
 
         private void StartServer()

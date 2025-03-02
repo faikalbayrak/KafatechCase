@@ -15,7 +15,7 @@ namespace Player
         [SerializeField] private GameObject bulletPrefab;
 
         private float attackCooldownTimer = 0f;
-        private float attackCooldownDuration = 1.5f;
+        private float attackCooldownDuration = 1f;
         private int directionIndex = 0;
         private float animationTimer = 0;
         private int currentFrame = 0;
@@ -64,10 +64,21 @@ namespace Player
 
         private void UpdateDirectionIndex()
         {
-            Vector3 moveDirection = _agent.velocity.normalized;
-            if (moveDirection.magnitude > 0.1f)
+            if (currentState.Value == AnimationState.Walk)
             {
-                int newDirection = GetDirectionIndex(moveDirection);
+                Vector3 moveDirection = _agent.velocity.normalized;
+                if (moveDirection.magnitude > 0.1f)
+                {
+                    int newDirection = GetDirectionIndex(moveDirection);
+                    if (IsServer) networkDirectionIndex.Value = newDirection;
+                    else UpdateDirection(newDirection);
+                }
+            }
+            
+            if (currentState.Value == AnimationState.Attack)
+            {
+                Vector3 attackDirection = _unitController.Target.position - transform.position;
+                int newDirection = GetDirectionIndex(attackDirection);
                 if (IsServer) networkDirectionIndex.Value = newDirection;
                 else UpdateDirection(newDirection);
             }
@@ -129,7 +140,7 @@ namespace Player
                                 SetWalkState(false);
                                 if (_unitController.CanAttack)
                                 {
-                                    _unitController.DealDamage(.2f);
+                                    _unitController.DealDamage(.16f);
                                 }
 
                                 attackCooldownTimer = attackCooldownDuration;

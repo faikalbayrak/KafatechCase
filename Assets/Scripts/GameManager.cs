@@ -4,6 +4,7 @@ using Interfaces;
 using Player;
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.UI;
 using VContainer;
 
 public class GameManager : NetworkBehaviour, IGameManager
@@ -20,9 +21,11 @@ public class GameManager : NetworkBehaviour, IGameManager
     [SerializeField] private Transform enemySide2TowerSpawnPoint;
     [SerializeField] private Transform gameOriginPoint;
     [SerializeField] private GameObject EndGamePanel;
+    [SerializeField] private Button setSoundOnButton;
+    [SerializeField] private Button setSoundOffButton;
     
     private Dictionary<ulong, int> towerCountByOwner = new Dictionary<ulong, int>();
-
+    private IAudioService _audioService;
     public NetworkList<NetworkObjectReference> SpawnedPlayers { get; private set; }
     public NetworkList<NetworkObjectReference> SpawnedTowers { get; private set; }
     public NetworkList<NetworkObjectReference> SpawnedUnits { get; private set; }
@@ -36,12 +39,16 @@ public class GameManager : NetworkBehaviour, IGameManager
         SpawnedPlayers = new NetworkList<NetworkObjectReference>();
         SpawnedTowers = new NetworkList<NetworkObjectReference>();
         SpawnedUnits = new NetworkList<NetworkObjectReference>();
+        
+        setSoundOnButton.onClick.AddListener(SetSoundOn);
+        setSoundOffButton.onClick.AddListener(SetSoundOff);
     }
 
     [Inject]
-    public void Init(IObjectResolver resolver)
+    public void Init(IObjectResolver resolver,IAudioService audioService)
     {
         _objectResolver = resolver;
+        _audioService = audioService;
     }
 
     public override void OnNetworkSpawn()
@@ -53,6 +60,28 @@ public class GameManager : NetworkBehaviour, IGameManager
                 SpawnPlayer(client.ClientId);
             }
         }
+        else
+        {
+            _audioService.PlayMusic();
+        }
+    }
+    
+    private void SetSoundOn()
+    {
+        _audioService.SetSoundState(true);
+        setSoundOffButton.gameObject.SetActive(true);
+        setSoundOnButton.gameObject.SetActive(false);
+        
+        PlayOneShot("ButtonClick");
+    }
+    
+    private void SetSoundOff()
+    {
+        _audioService.SetSoundState(false);
+        setSoundOffButton.gameObject.SetActive(false);
+        setSoundOnButton.gameObject.SetActive(true);
+        
+        PlayOneShot("ButtonClick");
     }
     
     private void SpawnPlayer(ulong clientId)
@@ -63,7 +92,7 @@ public class GameManager : NetworkBehaviour, IGameManager
         playerNetworkObject.SpawnAsPlayerObject(clientId);
         
         SpawnedPlayers.Add(new NetworkObjectReference(playerNetworkObject));
-
+        Debug.LogError("is null "+ (_objectResolver==null));
         if(player.TryGetComponent<NetworkGamePlayerController>(out var networkGamePlayerController))
         {
             networkGamePlayerController.SetObjectResolver(_objectResolver);
@@ -130,6 +159,11 @@ public class GameManager : NetworkBehaviour, IGameManager
             }
         }
     }
+
+    public void PlayOneShot(string clipName)
+    {
+        _audioService.PlayOneShot(clipName);
+    }
     
     private ulong FindOtherPlayer(ulong loserClientId)
     {
@@ -150,12 +184,20 @@ public class GameManager : NetworkBehaviour, IGameManager
 
         if (EndGamePanel.TryGetComponent<EndGamePanelController>(out var endGamePanelController))
         {
-            if(winnerId == NetworkManager.LocalClient.ClientId)
+            if (winnerId == NetworkManager.LocalClient.ClientId)
+            {
                 endGamePanelController.SetForWinner();
+                PlayOneShot("Win");
+            }
             else
+            {
                 endGamePanelController.SetForLoser();
+                PlayOneShot("Lose");
+            }
+                
         }
     }
+    
     private Vector3 GetSpawnPosition(ulong clientId)
     {
         return Vector3.zero;

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b05ab93a09503f547a4c76cba46d8c58, type: 3}
+  m_Name: AudioClipDatabase
+  m_EditorClassIdentifier: 
+  gameMusic: {fileID: 8300000, guid: affbc3859e4f4ab4981e478662ad5cb0, type: 3}
+  audioClips:
+  - clipName: UnitSpawn
+    clip: {fileID: 8300000, guid: 368808493d8204541bca7d3a5a70a7a4, type: 3}
+  - clipName: ButtonClick
+    clip: {fileID: 8300000, guid: 75c866fe04a12f74d8ff2f18e531b4ed, type: 3}
+  - clipName: Win
+    clip: {fileID: 8300000, guid: 06725640da1d56143a57224b1f1c9624, type: 3}
+  - clipName: Lose
+    clip: {fileID: 8300000, guid: c315f7d14fca9c54cb994992a540e25e, type: 3}

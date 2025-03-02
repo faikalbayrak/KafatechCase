@@ -67,7 +67,7 @@ namespace Player
         public void SpawnUnit()
         {
             if (!IsOwner) return;
-            
+            _gameManager.PlayOneShot("UnitSpawn");
             SpawnUnit_ServerRpc(NetworkManager.LocalClient.ClientId);
         }
         

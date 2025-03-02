@@ -14,5 +14,6 @@ namespace Interfaces
         public void RegisterUnit(NetworkObject unit);
         public void OnTowerDestroyed(ulong ownerClientId);
         public bool IsGameEnded();
+        public void PlayOneShot(string clipName);
     }
 }
