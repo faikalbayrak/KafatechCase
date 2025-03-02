@@ -92,7 +92,7 @@ public class GameManager : NetworkBehaviour, IGameManager
         playerNetworkObject.SpawnAsPlayerObject(clientId);
         
         SpawnedPlayers.Add(new NetworkObjectReference(playerNetworkObject));
-        Debug.LogError("is null "+ (_objectResolver==null));
+        
         if(player.TryGetComponent<NetworkGamePlayerController>(out var networkGamePlayerController))
         {
             networkGamePlayerController.SetObjectResolver(_objectResolver);

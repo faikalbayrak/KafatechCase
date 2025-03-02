@@ -78,6 +78,14 @@ namespace Player
             }
         }
         
+        public void PlayOneShot(string soundName)
+        {
+            if (gameManager != null)
+            {
+                gameManager.PlayOneShot(soundName);
+            }
+        }
+        
         private void SetHpBarPosition()
         {
             if (hpBarCanvas == null) return;

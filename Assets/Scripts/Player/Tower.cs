@@ -62,12 +62,14 @@ namespace Player
             {
                 Debug.LogError("Unit prefab'ında NetworkObject bulunamadı!");
             }
+            
+            _gameManager.PlayOneShot("UnitSpawn");
         }
         
         public void SpawnUnit()
         {
             if (!IsOwner) return;
-            _gameManager.PlayOneShot("UnitSpawn");
+            
             SpawnUnit_ServerRpc(NetworkManager.LocalClient.ClientId);
         }
         

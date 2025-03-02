@@ -7,48 +7,43 @@ namespace Player
 {
     public class NetworkUnitAnimator : NetworkBehaviour
     {
+        #region Serialized Fields
+        
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private Sprite[] walkSprites;
         [SerializeField] private Sprite[] attackSprites;
         [SerializeField] private float walkingFrameRate = 0.1f;
         [SerializeField] private float attackFrameRate = 0.05f;
         [SerializeField] private GameObject bulletPrefab;
+        
+        #endregion
 
+        #region Fields
+        
         private float attackCooldownTimer = 0f;
-        private float attackCooldownDuration = 1f;
+        private float attackCooldownDuration = .5f;
         private int directionIndex = 0;
-        private float animationTimer = 0;
         private int currentFrame = 0;
+        private float animationTimer = 0;
+        private bool attacked = false;
         private NavMeshAgent _agent;
         private NetworkUnitController _unitController;
-
         private NetworkVariable<AnimationState> currentState = new NetworkVariable<AnimationState>(
             AnimationState.Idle, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
         private NetworkVariable<int> networkDirectionIndex = new NetworkVariable<int>(
             0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
-
         private enum AnimationState { Idle, Walk, Attack }
 
+        #endregion
+
+        #region Unity Functions
+        
         private void Awake()
         {
             _agent = GetComponent<NavMeshAgent>();
             _unitController = GetComponent<NetworkUnitController>();
         }
-
-        public override void OnNetworkSpawn()
-        {
-            networkDirectionIndex.OnValueChanged += (oldDir, newDir) => directionIndex = newDir;
-
-            currentState.OnValueChanged += (oldState, newState) =>
-            {
-                if (newState == AnimationState.Idle)
-                {
-                    spriteRenderer.sprite = walkSprites[directionIndex * 8];
-                }
-            };
-        }
-
+        
         private void Update()
         {
             if (IsServer)
@@ -61,6 +56,55 @@ namespace Player
         {
             AnimateSprite();
         }
+        
+        #endregion
+
+        #region Public Functions
+        
+        public override void OnNetworkSpawn()
+        {
+            networkDirectionIndex.OnValueChanged += (oldDir, newDir) => directionIndex = newDir;
+
+            currentState.OnValueChanged += (oldState, newState) =>
+            {
+                if (newState == AnimationState.Idle)
+                {
+                    spriteRenderer.sprite = walkSprites[directionIndex * 8];
+                }
+            };
+        }
+        
+        public void SetAttackState()
+        {
+            if (IsServer)
+            {
+                currentState.Value = AnimationState.Attack;
+                currentFrame = 0;
+                animationTimer = 0;
+            }
+            else
+            {
+                SetAttackStateServerRpc();
+            }
+        }
+        
+        public void SetWalkState(bool isWalking)
+        {
+            if (IsServer)
+            {
+                currentState.Value = isWalking ? AnimationState.Walk : AnimationState.Idle;
+                currentFrame = 0;
+                animationTimer = 0;
+            }
+            else
+            {
+                SetWalkStateServerRpc(isWalking);
+            }
+        }
+
+        #endregion
+
+        #region Private Functions
 
         private void UpdateDirectionIndex()
         {
@@ -131,16 +175,18 @@ namespace Player
                             {
                                 if (_unitController.CanAttack)
                                 {
+                                    attacked = false;
                                     SpawnBullet(_unitController.BulletTargetPosition);
                                 }
                             }
                             
-                            if (currentFrame == 7)
+                            if (currentFrame == 7 && !attacked)
                             {
+                                attacked = true;
                                 SetWalkState(false);
                                 if (_unitController.CanAttack)
                                 {
-                                    _unitController.DealDamage(.16f);
+                                    _unitController.DealDamage(.15f);
                                 }
 
                                 attackCooldownTimer = attackCooldownDuration;
@@ -150,8 +196,7 @@ namespace Player
                 }
             }
         }
-
-
+        
         private int GetDirectionIndex(Vector3 moveDirection)
         {
             if (moveDirection == Vector3.zero) return 0;
@@ -170,20 +215,6 @@ namespace Player
             if (angle >= 247.5f && angle < 292.5f) return 0;
             return 7;
         }
-        
-        public void SetAttackState()
-        {
-            if (IsServer)
-            {
-                currentState.Value = AnimationState.Attack;
-                currentFrame = 0;
-                animationTimer = 0;
-            }
-            else
-            {
-                SetAttackStateServerRpc();
-            }
-        }
 
         [ServerRpc]
         private void SetAttackStateServerRpc()
@@ -191,20 +222,6 @@ namespace Player
             currentState.Value = AnimationState.Attack;
             currentFrame = 0;
             animationTimer = 0;
-        }
-
-        public void SetWalkState(bool isWalking)
-        {
-            if (IsServer)
-            {
-                currentState.Value = isWalking ? AnimationState.Walk : AnimationState.Idle;
-                currentFrame = 0;
-                animationTimer = 0;
-            }
-            else
-            {
-                SetWalkStateServerRpc(isWalking);
-            }
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -237,6 +254,8 @@ namespace Player
             {
                 Debug.LogError("Unit prefab'ında NetworkObject bulunamadı!");
             }
+            
+            _unitController.PlayOneShot("ShotgunShot");
         }
         
         private void SpawnBullet(Vector3 _targetPosition)
@@ -245,5 +264,8 @@ namespace Player
             
             SpawnBullet_ServerRpc(_targetPosition,NetworkManager.LocalClient.ClientId);
         }
+
+        #endregion
+        
     }
 }

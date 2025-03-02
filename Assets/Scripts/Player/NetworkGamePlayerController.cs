@@ -73,7 +73,7 @@ namespace Player
             }
             else
             {
-                Debug.LogError("Did not hit tower");
+                Debug.Log("Did not hit tower");
             }
         }
         

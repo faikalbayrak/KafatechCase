@@ -37,11 +37,12 @@ namespace Player
             if (!IsServer) return;
             if (currentHealth.Value <= 0) return;
 
-            currentHealth.Value = Mathf.Max(0, currentHealth.Value - damage);
+            currentHealth.Value -= damage;
             OnHealthChanged?.Invoke(currentHealth.Value, maxHealth);
 
-            if (currentHealth.Value == 0)
+            if (currentHealth.Value <= 0)
             {
+                currentHealth.Value = 0;
                 DespawnObject();
             }
         }

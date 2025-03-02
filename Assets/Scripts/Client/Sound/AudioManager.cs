@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using Interfaces;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace Managers
 {
-    public class AudioManager : MonoBehaviour, IAudioService
+    public class AudioManager : NetworkBehaviour, IAudioService
     {
         #region Serializable Fields
         
@@ -26,10 +27,6 @@ namespace Managers
         
         private bool isSoundsOn = true;
         
-        private float musicVolumeMultiplier = 1;
-        private float sfxVolumeMultiplier = 1;
-        private float oneShotAudioSourceVolume;
-
         #endregion
 
         
@@ -45,7 +42,6 @@ namespace Managers
 
         private void Awake()
         {
-            oneShotAudioSourceVolume = oneShotAudioSource.volume;
             InitializeClipDictionary();
         }
 
@@ -54,14 +50,14 @@ namespace Managers
 
         #region Public Methods
 
-        public void PlayOneShot(string clipName,float volumeScale = 1)
+        public void PlayOneShot(string clipName)
         {
             if (!isSoundsOn)
                 return;
             
             if (clipDictionary.TryGetValue(clipName, out var clip))
             {
-                oneShotAudioSource.PlayOneShot(clip,volumeScale);
+                oneShotAudioSource.PlayOneShot(clip);
             }
             else
             {
@@ -74,12 +70,19 @@ namespace Managers
             if (!isSoundsOn)
                 return;
             
-            musicAudioSource.Play();
+            if(!musicAudioSource.isPlaying)
+                musicAudioSource.Play();
+            else
+            {
+                musicAudioSource.volume = 0.2f;
+                oneShotAudioSource.volume = 0.2f;
+            }
         }
         
         public void StopMusic()
         {
-            musicAudioSource.Stop();
+            musicAudioSource.volume = 0;
+            oneShotAudioSource.volume = 0;
         }
         
         public void SetSoundState(bool state)

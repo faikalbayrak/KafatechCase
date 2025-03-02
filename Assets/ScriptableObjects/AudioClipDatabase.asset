@@ -22,3 +22,5 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 06725640da1d56143a57224b1f1c9624, type: 3}
   - clipName: Lose
     clip: {fileID: 8300000, guid: c315f7d14fca9c54cb994992a540e25e, type: 3}
+  - clipName: ShotgunShot
+    clip: {fileID: 8300000, guid: aa23280c43ee41f45a585729458ca884, type: 3}
