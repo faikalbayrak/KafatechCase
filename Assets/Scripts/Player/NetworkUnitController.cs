@@ -55,15 +55,15 @@ namespace Player
             }
         }
 
-        private void Update()
-        {
-            if (!IsServer) return;
-
-            if (!dependencyResolved)
-                return;
-            
-            FindTarget();
-        }
+        // private void Update()
+        // {
+        //     if (!IsServer) return;
+        //
+        //     if (!dependencyResolved)
+        //         return;
+        //     
+        //     FindTarget();
+        // }
 
         public void SetObjectResolver(IObjectResolver objectResolver, ulong clientId)
         {
@@ -87,6 +87,11 @@ namespace Player
 
         private void FindTarget()
         {
+            if (!IsServer) return;
+            
+            if (!dependencyResolved)
+                return;
+            
             NetworkObject closestEnemyUnit = GetClosestEnemyUnit();
             NetworkObject closestEnemyTower = GetClosestEnemyTower();
 
@@ -130,15 +135,20 @@ namespace Player
                 animator.SetWalkState(false);
             }
         }
+        
+        public GameObject GetTargetGameObject()
+        {
+            return _target ? _target.gameObject : null;
+        }
 
         [ClientRpc]
-        public void SetCanAttackClientRpc(bool canAttack)
+        private void SetCanAttackClientRpc(bool canAttack)
         {
             _canAttack = canAttack;
         }
         
         [ClientRpc]
-        public void SetTargetPositionClientRpc(Vector3 targetPosition)
+        private void SetTargetPositionClientRpc(Vector3 targetPosition)
         {
             bulletTargetPosition = targetPosition;
         }
@@ -151,7 +161,7 @@ namespace Player
                 DealDamageServerRpc();
         }
         
-        [ServerRpc]
+        [ServerRpc(RequireOwnership = false)]
         private void DealDamageServerRpc()
         {
             if (_target == null) return;

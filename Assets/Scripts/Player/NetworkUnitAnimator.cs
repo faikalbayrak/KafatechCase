@@ -88,11 +88,14 @@ namespace Player
             }
 
             float frameRate = currentState.Value == AnimationState.Attack ? attackFrameRate : walkingFrameRate;
-            
-            if (currentState.Value == AnimationState.Attack && attackCooldownTimer > 0)
+
+            if (currentState.Value == AnimationState.Attack)
             {
-                attackCooldownTimer -= Time.fixedDeltaTime;
-                return;
+                if (attackCooldownTimer > 0)
+                {
+                    attackCooldownTimer -= Time.fixedDeltaTime;
+                    return;
+                }
             }
 
             animationTimer += Time.fixedDeltaTime;
@@ -112,7 +115,8 @@ namespace Player
                             break;
                         case AnimationState.Attack:
                             spriteRenderer.sprite = attackSprites[spriteIndex];
-                            if (spriteIndex == 0)
+                            
+                            if (currentFrame == 5) 
                             {
                                 if (_unitController.CanAttack)
                                 {
@@ -125,9 +129,9 @@ namespace Player
                                 SetWalkState(false);
                                 if (_unitController.CanAttack)
                                 {
-                                    _unitController.DealDamage(.25f);
+                                    _unitController.DealDamage(.2f);
                                 }
-                                
+
                                 attackCooldownTimer = attackCooldownDuration;
                             }
                             break;
@@ -136,23 +140,24 @@ namespace Player
             }
         }
 
+
         private int GetDirectionIndex(Vector3 moveDirection)
         {
-            if (moveDirection == Vector3.zero) return 0; // Hareket etmiyorsa varsayılan yön
+            if (moveDirection == Vector3.zero) return 0;
 
             Vector3 reverseDirection = -moveDirection;
 
             float angle = Mathf.Atan2(reverseDirection.z, reverseDirection.x) * Mathf.Rad2Deg;
-            if (angle < 0) angle += 360; // Negatif açıyı pozitif hale getir
+            if (angle < 0) angle += 360;
 
-            if (angle >= 337.5f || angle < 22.5f) return 6;   // Sol (←)  -> Sağ (→) yerine
-            if (angle >= 22.5f && angle < 67.5f) return 5;    // Sol-Alt (↙) -> Sağ-Alt (↘) yerine
-            if (angle >= 67.5f && angle < 112.5f) return 4;   // Aşağı (↓) doğru
-            if (angle >= 112.5f && angle < 157.5f) return 3;  // Sağ-Alt (↘) -> Sol-Alt (↙) yerine
-            if (angle >= 157.5f && angle < 202.5f) return 2;  // Sağ (→) -> Sol (←) yerine
-            if (angle >= 202.5f && angle < 247.5f) return 1;  // Sağ-Üst (↗) -> Sol-Üst (↖) yerine
-            if (angle >= 247.5f && angle < 292.5f) return 0;  // Yukarı (↑) doğru
-            return 7;                                         // Sol-Üst (↖) -> Sağ-Üst (↗) yerine
+            if (angle >= 337.5f || angle < 22.5f) return 6;
+            if (angle >= 22.5f && angle < 67.5f) return 5;
+            if (angle >= 67.5f && angle < 112.5f) return 4;
+            if (angle >= 112.5f && angle < 157.5f) return 3;
+            if (angle >= 157.5f && angle < 202.5f) return 2;
+            if (angle >= 202.5f && angle < 247.5f) return 1;
+            if (angle >= 247.5f && angle < 292.5f) return 0;
+            return 7;
         }
         
         public void SetAttackState()
@@ -191,7 +196,7 @@ namespace Player
             }
         }
 
-        [ServerRpc]
+        [ServerRpc(RequireOwnership = false)]
         private void SetWalkStateServerRpc(bool isWalking)
         {
             currentState.Value = isWalking ? AnimationState.Walk : AnimationState.Idle;
@@ -223,7 +228,7 @@ namespace Player
             }
         }
         
-        public void SpawnBullet(Vector3 _targetPosition)
+        private void SpawnBullet(Vector3 _targetPosition)
         {
             if (!IsOwner) return;
             

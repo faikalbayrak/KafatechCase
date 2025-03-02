@@ -12,5 +12,7 @@ namespace Interfaces
         public Transform GetGameOriginPoint();
         public List<NetworkObject> GetOpponentTowers(ulong myClientId);
         public void RegisterUnit(NetworkObject unit);
+        public void OnTowerDestroyed(ulong ownerClientId);
+        public bool IsGameEnded();
     }
 }

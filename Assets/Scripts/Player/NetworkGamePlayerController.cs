@@ -1,6 +1,8 @@
 using System;
+using Interfaces;
 using Unity.Netcode;
 using UnityEngine;
+using VContainer;
 
 namespace Player
 {
@@ -8,6 +10,9 @@ namespace Player
     {
         [SerializeField] private Camera playerCamera;
         private ulong _clientId = 0;
+        private IObjectResolver _objectResolver;
+        private IGameManager _gameManager;
+        private bool dependencyResolved = false;
         public override void OnNetworkSpawn()
         {
             if (IsOwner)
@@ -28,6 +33,16 @@ namespace Player
                 playerCamera.gameObject.SetActive(false);
             }
         }
+        
+        public void SetObjectResolver(IObjectResolver objectResolver)
+        {
+            _objectResolver = objectResolver;
+            
+            if(_objectResolver != null)
+                _gameManager = _objectResolver.Resolve<IGameManager>();
+            
+            dependencyResolved = true;
+        }
 
         private void Update()
         {
@@ -40,6 +55,9 @@ namespace Player
         
         private void CheckClick()
         {
+            // if(_gameManager.IsGameEnded())
+            //     return;
+            
             Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             

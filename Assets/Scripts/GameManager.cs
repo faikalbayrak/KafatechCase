@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Client;
 using Interfaces;
 using Player;
 using UnityEngine;
@@ -18,12 +19,17 @@ public class GameManager : NetworkBehaviour, IGameManager
     [SerializeField] private Transform enemySide1TowerSpawnPoint;
     [SerializeField] private Transform enemySide2TowerSpawnPoint;
     [SerializeField] private Transform gameOriginPoint;
+    [SerializeField] private GameObject EndGamePanel;
     
+    private Dictionary<ulong, int> towerCountByOwner = new Dictionary<ulong, int>();
+
     public NetworkList<NetworkObjectReference> SpawnedPlayers { get; private set; }
     public NetworkList<NetworkObjectReference> SpawnedTowers { get; private set; }
     public NetworkList<NetworkObjectReference> SpawnedUnits { get; private set; }
 
     private IObjectResolver _objectResolver;
+    
+    private bool gameEnded = false;
 
     private void Awake()
     {
@@ -48,16 +54,22 @@ public class GameManager : NetworkBehaviour, IGameManager
             }
         }
     }
-
+    
     private void SpawnPlayer(ulong clientId)
     {
         GameObject player = Instantiate(playerPrefab, GetSpawnPosition(clientId), Quaternion.identity);
+        
         NetworkObject playerNetworkObject = player.GetComponent<NetworkObject>();
         playerNetworkObject.SpawnAsPlayerObject(clientId);
         
         SpawnedPlayers.Add(new NetworkObjectReference(playerNetworkObject));
 
-        player.GetComponent<NetworkGamePlayerController>().SetOwnerClientId(clientId);
+        if(player.TryGetComponent<NetworkGamePlayerController>(out var networkGamePlayerController))
+        {
+            networkGamePlayerController.SetObjectResolver(_objectResolver);
+            networkGamePlayerController.SetOwnerClientId(clientId);
+        }
+        
         SpawnTowers(clientId);
     }
 
@@ -94,8 +106,56 @@ public class GameManager : NetworkBehaviour, IGameManager
         networkObject.SpawnWithOwnership(clientId);
         
         SpawnedTowers.Add(new NetworkObjectReference(networkObject));
+        
+        if (!towerCountByOwner.ContainsKey(clientId))
+        {
+            towerCountByOwner[clientId] = 0;
+        }
+        towerCountByOwner[clientId]++;
     }
 
+    public void OnTowerDestroyed(ulong ownerClientId)
+    {
+        if (!IsServer) return;
+        
+        if (towerCountByOwner.ContainsKey(ownerClientId))
+        {
+            towerCountByOwner[ownerClientId]--;
+            if (towerCountByOwner[ownerClientId] <= 0)
+            {
+                ulong winnerId = FindOtherPlayer(ownerClientId);
+                Debug.Log($"Player {ownerClientId} lost, Player {winnerId} is the winner!");
+                
+                ShowEndGameClientRpc(winnerId);
+            }
+        }
+    }
+    
+    private ulong FindOtherPlayer(ulong loserClientId)
+    {
+        foreach (var kvp in towerCountByOwner)
+        {
+            if (kvp.Key != loserClientId)
+                return kvp.Key;
+        }
+        return 99999;
+    }
+
+    [ClientRpc]
+    private void ShowEndGameClientRpc(ulong winnerId)
+    {
+        gameEnded = true;
+        Debug.Log($"End Game! Winner is client {winnerId}");
+        EndGamePanel.SetActive(true);
+
+        if (EndGamePanel.TryGetComponent<EndGamePanelController>(out var endGamePanelController))
+        {
+            if(winnerId == NetworkManager.LocalClient.ClientId)
+                endGamePanelController.SetForWinner();
+            else
+                endGamePanelController.SetForLoser();
+        }
+    }
     private Vector3 GetSpawnPosition(ulong clientId)
     {
         return Vector3.zero;
@@ -122,6 +182,11 @@ public class GameManager : NetworkBehaviour, IGameManager
         }
 
         return opponentTowers;
+    }
+    
+    public bool IsGameEnded()
+    {
+        return gameEnded;
     }
     
     public void RegisterUnit(NetworkObject unit)

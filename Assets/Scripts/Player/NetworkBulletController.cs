@@ -5,14 +5,14 @@ namespace Player
 {
     public class NetworkBulletController : NetworkBehaviour
     {
-        public float speed = 30f;
+        private float speed = 40f;
         private Vector3 targetPosition;
         private bool initialized = false;
 
         public void Initialize(Vector3 target)
         {
             targetPosition = target;
-            Invoke(nameof(DestroyBullet), .7f);
+            Invoke(nameof(DestroyBullet), .5f);
             initialized = true;
         }
 

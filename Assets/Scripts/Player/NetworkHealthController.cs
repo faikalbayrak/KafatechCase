@@ -29,7 +29,6 @@ namespace Player
 
         private void OnHealthValueChanged(int oldValue, int newValue)
         {
-            Debug.Log($"Health Değişti: {newValue}");
             UpdateHpBarClientRpc(newValue, maxHealth);
         }
 

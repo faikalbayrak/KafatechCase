@@ -326,7 +326,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShowTopMostFoldoutHeaderGroup: 1
-  maxHealth: 1000
+  maxHealth: 100
   customHealthBar: {fileID: 5201228286368670812}
 --- !u!114 &5466138925793729614
 MonoBehaviour:

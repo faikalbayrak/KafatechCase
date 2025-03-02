@@ -1,3 +1,4 @@
+using System;
 using Interfaces;
 using Unity.Netcode;
 using UnityEngine;
@@ -13,14 +14,27 @@ namespace Player
         [SerializeField] private GameObject unitPrefab;
         [SerializeField] private Transform[] spawnPoints;
     
-        private SpriteRenderer spriteRenderer;
+        private SpriteRenderer _spriteRenderer;
         private ulong ownerClientId;
         private IObjectResolver _objectResolver;
+        private IGameManager _gameManager;
         private Transform gameOriginPoint;
+        private NetworkHealthController _healthController;
 
         private void Awake()
         {
-            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+            _healthController = GetComponent<NetworkHealthController>();
+        }
+
+        private void OnEnable()
+        {
+            _healthController.OnDeath += DestroyedTower;
+        }
+
+        private void OnDisable()
+        {
+            _healthController.OnDeath -= DestroyedTower;
         }
 
         [ServerRpc(RequireOwnership = false)]
@@ -76,8 +90,8 @@ namespace Player
                 return;
             
             _objectResolver = objectResolver;
-
-            gameOriginPoint = _objectResolver.Resolve<GameManager>().GetGameOriginPoint();
+            _gameManager = _objectResolver.Resolve<IGameManager>();
+            gameOriginPoint = _gameManager.GetGameOriginPoint();
         }
 
         [ClientRpc]
@@ -96,13 +110,21 @@ namespace Player
 
         private void SetTowerColor(bool isOwnTower)
         {
-            if (spriteRenderer == null)
+            if (_spriteRenderer == null)
             {
                 Debug.LogError("SpriteRenderer bulunamadı!");
                 return;
             }
             
-            spriteRenderer.sprite = isOwnTower ? playerTowerSprite : enemyTowerSprite;
+            _spriteRenderer.sprite = isOwnTower ? playerTowerSprite : enemyTowerSprite;
+        }
+        
+        private void DestroyedTower()
+        {
+            if (IsServer)
+            {
+                _gameManager.OnTowerDestroyed(OwnerClientId);
+            }
         }
     }
 }
