@@ -9,10 +9,21 @@ namespace Client
 {
     public class ClientManager : NetworkBehaviour, IClientManager
     {
+        #region Serializable Fields
+
         [SerializeField] private Button startClientButton;
         [SerializeField] private Button startServerButton;
+        
+        #endregion
+        
+        #region Fields
+        
         private GameObject canvasGo;
-
+        
+        #endregion
+        
+        #region Unity Methods
+        
         private void Awake()
         {
             canvasGo = startClientButton.transform.parent.gameObject;
@@ -23,6 +34,11 @@ namespace Client
             startClientButton.onClick.AddListener(StartClient);
             startServerButton.onClick.AddListener(StartServer);
         }
+        
+        #endregion
+        
+        #region Private Methods
+        
         private void StartClient()
         {
             if (NetworkManager == null) return;
@@ -55,5 +71,8 @@ namespace Client
         {
             Debug.LogError("Disconnected from server");
         }
+        
+        #endregion
+        
     }
 }

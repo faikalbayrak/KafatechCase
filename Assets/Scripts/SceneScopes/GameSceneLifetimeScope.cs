@@ -5,6 +5,8 @@ using VContainer.Unity;
 
 public class GameSceneLifetimeScope : LifetimeScope
 {
+    public static IObjectResolver Contanier;
+    
     [SerializeField] private GameManager gameManager;
     protected override void Configure(IContainerBuilder builder)
     {

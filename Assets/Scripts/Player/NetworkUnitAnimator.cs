@@ -25,7 +25,6 @@ namespace Player
         private int directionIndex = 0;
         private int currentFrame = 0;
         private float animationTimer = 0;
-        private bool attacked = false;
         private NavMeshAgent _agent;
         private NetworkUnitController _unitController;
         private NetworkVariable<AnimationState> currentState = new NetworkVariable<AnimationState>(
@@ -36,7 +35,7 @@ namespace Player
 
         #endregion
 
-        #region Unity Functions
+        #region Unity Methods
         
         private void Awake()
         {
@@ -59,7 +58,7 @@ namespace Player
         
         #endregion
 
-        #region Public Functions
+        #region Public Methods
         
         public override void OnNetworkSpawn()
         {
@@ -104,7 +103,7 @@ namespace Player
 
         #endregion
 
-        #region Private Functions
+        #region Private Methods
 
         private void UpdateDirectionIndex()
         {
@@ -175,20 +174,22 @@ namespace Player
                             {
                                 if (_unitController.CanAttack)
                                 {
-                                    attacked = false;
                                     SpawnBullet(_unitController.BulletTargetPosition);
                                 }
                             }
                             
-                            if (currentFrame == 7 && !attacked)
+                            if (currentFrame == 7)
                             {
-                                attacked = true;
-                                SetWalkState(false);
+                                spriteRenderer.sprite = walkSprites[spriteIndex];
                                 if (_unitController.CanAttack)
                                 {
-                                    _unitController.DealDamage(.15f);
+                                    if (IsOwner)
+                                    {
+                                        _unitController.DealDamage(.15f);
+                                    }
+                                        
                                 }
-
+                                currentFrame = 0;
                                 attackCooldownTimer = attackCooldownDuration;
                             }
                             break;
@@ -252,7 +253,7 @@ namespace Player
             }
             else
             {
-                Debug.LogError("Unit prefab'ında NetworkObject bulunamadı!");
+                Debug.LogError("NetworkObject is null!");
             }
             
             _unitController.PlayOneShot("ShotgunShot");

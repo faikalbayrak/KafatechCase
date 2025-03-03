@@ -11,17 +11,21 @@ namespace Player
 {
     public class NetworkUnitController : NetworkBehaviour
     {
+        #region Serializable Fields
+
         [SerializeField] private float attackRange = 5.1f;
         [SerializeField] private int damage = 10;
-
         [SerializeField] private GameObject hpBarCanvas;
         [SerializeField] private Transform hpBarPosPositive;
         [SerializeField] private Transform hpBarPosNegative;
-
+        
+        #endregion
+        
+        #region Fields
+        
         private NavMeshAgent agent;
         private NetworkUnitAnimator animator;
         private Transform _target;
-
         private IObjectResolver _objectResolver;
         private Transform gameOriginPoint;
         private bool dependencyResolved = false;
@@ -30,10 +34,18 @@ namespace Player
         private bool _canAttack = false;
         private Vector3 bulletTargetPosition;
         
+        #endregion
+
+        #region Properties
+
         public Vector3 BulletTargetPosition => bulletTargetPosition;
         public bool CanAttack => _canAttack;
         public Transform Target => _target;
 
+        #endregion
+        
+        #region Unity Methods
+        
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
@@ -46,7 +58,11 @@ namespace Player
         {
             SetHpBarPosition();
         }
+        
+        #endregion
 
+        #region Public Methods
+        
         public override void OnNetworkSpawn()
         {
             if (IsServer)
@@ -54,16 +70,6 @@ namespace Player
                 InvokeRepeating(nameof(FindTarget), 0, 1f);
             }
         }
-
-        // private void Update()
-        // {
-        //     if (!IsServer) return;
-        //
-        //     if (!dependencyResolved)
-        //         return;
-        //     
-        //     FindTarget();
-        // }
 
         public void SetObjectResolver(IObjectResolver objectResolver, ulong clientId)
         {
@@ -85,6 +91,18 @@ namespace Player
                 gameManager.PlayOneShot(soundName);
             }
         }
+        
+        public void DealDamage(float delay = 0)
+        {
+            if(delay > 0)
+                Invoke(nameof(DealDamageServerRpc), delay);
+            else
+                DealDamageServerRpc();
+        }
+
+        #endregion
+        
+        #region Private Methods
         
         private void SetHpBarPosition()
         {
@@ -144,11 +162,6 @@ namespace Player
             }
         }
         
-        public GameObject GetTargetGameObject()
-        {
-            return _target ? _target.gameObject : null;
-        }
-
         [ClientRpc]
         private void SetCanAttackClientRpc(bool canAttack)
         {
@@ -159,14 +172,6 @@ namespace Player
         private void SetTargetPositionClientRpc(Vector3 targetPosition)
         {
             bulletTargetPosition = targetPosition;
-        }
-
-        public void DealDamage(float delay = 0)
-        {
-            if(delay > 0)
-                Invoke(nameof(DealDamageServerRpc), delay);
-            else
-                DealDamageServerRpc();
         }
         
         [ServerRpc(RequireOwnership = false)]
@@ -228,5 +233,7 @@ namespace Player
 
             return closestUnit;
         }
+        
+        #endregion
     }
 }

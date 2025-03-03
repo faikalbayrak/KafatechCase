@@ -1,5 +1,6 @@
 using System;
 using Interfaces;
+using Managers;
 using Unity.Netcode;
 using UnityEngine;
 using VContainer;
@@ -8,11 +9,36 @@ namespace Player
 {
     public class NetworkGamePlayerController : NetworkBehaviour
     {
+        #region Serializable Fields
+
         [SerializeField] private Camera playerCamera;
+        
+        #endregion
+        
+        #region Fields
+        
         private ulong _clientId = 0;
         private IObjectResolver _objectResolver;
         private IGameManager _gameManager;
         private bool dependencyResolved = false;
+        
+        #endregion
+        
+        #region Unity Methods
+        
+        private void Update()
+        {
+            if (!IsOwner)
+                return;
+            
+            if(Input.GetMouseButtonDown(0))
+                CheckClick();
+        }
+        
+        #endregion
+
+        #region Public Methods
+        
         public override void OnNetworkSpawn()
         {
             if (IsOwner)
@@ -43,21 +69,23 @@ namespace Player
             
             dependencyResolved = true;
         }
-
-        private void Update()
+        
+        public void SetOwnerClientId(ulong clientId)
         {
-            if (!IsOwner)
-                return;
-            
-            if(Input.GetMouseButtonDown(0))
-                CheckClick();
+            _clientId = clientId;
         }
+        
+        public ulong GetOwnerClientId()
+        {
+            return _clientId;
+        }
+        
+        #endregion
+        
+        #region Private Methods
         
         private void CheckClick()
         {
-            // if(_gameManager.IsGameEnded())
-            //     return;
-            
             Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
             
@@ -71,20 +99,8 @@ namespace Player
                     tower.SpawnUnit();
                 }
             }
-            else
-            {
-                Debug.Log("Did not hit tower");
-            }
         }
         
-        public void SetOwnerClientId(ulong clientId)
-        {
-            _clientId = clientId;
-        }
-        
-        public ulong GetOwnerClientId()
-        {
-            return _clientId;
-        }
+        #endregion
     }
 }

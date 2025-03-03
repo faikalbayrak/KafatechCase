@@ -6,13 +6,24 @@ namespace Server
 {
     public class ServerManager : NetworkBehaviour
     {
+        #region Serializable Fields
+
         [SerializeField] private GameObject serverUIView;
         [SerializeField] private GameObject clientUIView;
         [SerializeField] private TMP_Text clientConnectedClientTxt;
         [SerializeField] private TMP_Text serverConnectedClientTxt;
+        
+        #endregion
+        
+        #region Fields
+        
         private int _connectedPlayers = 0;
         private const int maxPlayers = 2;
-
+        
+        #endregion
+        
+        #region Unity Methods
+        
         private void Start()
         {
             NetworkManager.ConnectionApprovalCallback += ApprovalCheck;
@@ -29,7 +40,11 @@ namespace Server
                 clientUIView.SetActive(true);
             }
         }
-
+        
+        #endregion
+        
+        #region Private Methods
+        
         private void ApprovalCheck(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
         {
             response.Approved = true;
@@ -74,5 +89,8 @@ namespace Server
         {
             clientConnectedClientTxt.text = $"Connected Players: {connectedPlayers}/{maxPlayers}";
         }
+        
+        #endregion
+        
     }
 }

@@ -9,10 +9,11 @@ using VContainer;
 
 public class GameManager : NetworkBehaviour, IGameManager
 {
+    #region Serializable Fields
+    
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject mainTowerPrefab;
     [SerializeField] private GameObject sideTowerPrefab;
-
     [SerializeField] private Transform myMainTowerSpawnPoint;
     [SerializeField] private Transform mySide1TowerSpawnPoint;
     [SerializeField] private Transform mySide2TowerSpawnPoint;
@@ -24,16 +25,22 @@ public class GameManager : NetworkBehaviour, IGameManager
     [SerializeField] private Button setSoundOnButton;
     [SerializeField] private Button setSoundOffButton;
     
+    #endregion
+
+    #region Fields
+    
     private Dictionary<ulong, int> towerCountByOwner = new Dictionary<ulong, int>();
     private IAudioService _audioService;
     public NetworkList<NetworkObjectReference> SpawnedPlayers { get; private set; }
     public NetworkList<NetworkObjectReference> SpawnedTowers { get; private set; }
     public NetworkList<NetworkObjectReference> SpawnedUnits { get; private set; }
-
     private IObjectResolver _objectResolver;
-    
     private bool gameEnded = false;
 
+    #endregion
+    
+    #region Unity Methods
+    
     private void Awake()
     {
         SpawnedPlayers = new NetworkList<NetworkObjectReference>();
@@ -43,6 +50,10 @@ public class GameManager : NetworkBehaviour, IGameManager
         setSoundOnButton.onClick.AddListener(SetSoundOn);
         setSoundOffButton.onClick.AddListener(SetSoundOff);
     }
+    
+    #endregion
+
+    #region Public Methods
 
     [Inject]
     public void Init(IObjectResolver resolver,IAudioService audioService)
@@ -55,6 +66,9 @@ public class GameManager : NetworkBehaviour, IGameManager
     {
         if (IsServer)
         {
+            setSoundOffButton.gameObject.SetActive(false);
+            setSoundOnButton.gameObject.SetActive(false);
+            
             foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
             {
                 SpawnPlayer(client.ClientId);
@@ -66,6 +80,68 @@ public class GameManager : NetworkBehaviour, IGameManager
         }
     }
     
+    public void OnTowerDestroyed(ulong ownerClientId)
+    {
+        if (!IsServer) return;
+        
+        if (towerCountByOwner.ContainsKey(ownerClientId))
+        {
+            towerCountByOwner[ownerClientId]--;
+            if (towerCountByOwner[ownerClientId] <= 0)
+            {
+                ulong winnerId = FindOtherPlayer(ownerClientId);
+                Debug.Log($"Player {ownerClientId} lost, Player {winnerId} is the winner!");
+                
+                ShowEndGameClientRpc(winnerId);
+            }
+        }
+    }
+
+    public void PlayOneShot(string clipName)
+    {
+        _audioService.PlayOneShot(clipName);
+    }
+    
+    public Transform GetGameOriginPoint()
+    {
+        return gameOriginPoint;
+    }
+    
+    public List<NetworkObject> GetOpponentTowers(ulong myClientId)
+    {
+        List<NetworkObject> opponentTowers = new List<NetworkObject>();
+
+        foreach (var towerRef in SpawnedTowers)
+        {
+            if (towerRef.TryGet(out NetworkObject networkObject))
+            {
+                if (networkObject.OwnerClientId != myClientId)
+                {
+                    opponentTowers.Add(networkObject);
+                }
+            }
+        }
+
+        return opponentTowers;
+    }
+    
+    public bool IsGameEnded()
+    {
+        return gameEnded;
+    }
+    
+    public void RegisterUnit(NetworkObject unit)
+    {
+        if (IsServer)
+        {
+            SpawnedUnits.Add(new NetworkObjectReference(unit));
+        }
+    }
+
+    #endregion
+
+    #region Private Methods
+
     private void SetSoundOn()
     {
         _audioService.SetSoundState(true);
@@ -142,28 +218,6 @@ public class GameManager : NetworkBehaviour, IGameManager
         }
         towerCountByOwner[clientId]++;
     }
-
-    public void OnTowerDestroyed(ulong ownerClientId)
-    {
-        if (!IsServer) return;
-        
-        if (towerCountByOwner.ContainsKey(ownerClientId))
-        {
-            towerCountByOwner[ownerClientId]--;
-            if (towerCountByOwner[ownerClientId] <= 0)
-            {
-                ulong winnerId = FindOtherPlayer(ownerClientId);
-                Debug.Log($"Player {ownerClientId} lost, Player {winnerId} is the winner!");
-                
-                ShowEndGameClientRpc(winnerId);
-            }
-        }
-    }
-
-    public void PlayOneShot(string clipName)
-    {
-        _audioService.PlayOneShot(clipName);
-    }
     
     private ulong FindOtherPlayer(ulong loserClientId)
     {
@@ -203,39 +257,5 @@ public class GameManager : NetworkBehaviour, IGameManager
         return Vector3.zero;
     }
 
-    public Transform GetGameOriginPoint()
-    {
-        return gameOriginPoint;
-    }
-    
-    public List<NetworkObject> GetOpponentTowers(ulong myClientId)
-    {
-        List<NetworkObject> opponentTowers = new List<NetworkObject>();
-
-        foreach (var towerRef in SpawnedTowers)
-        {
-            if (towerRef.TryGet(out NetworkObject networkObject))
-            {
-                if (networkObject.OwnerClientId != myClientId)
-                {
-                    opponentTowers.Add(networkObject);
-                }
-            }
-        }
-
-        return opponentTowers;
-    }
-    
-    public bool IsGameEnded()
-    {
-        return gameEnded;
-    }
-    
-    public void RegisterUnit(NetworkObject unit)
-    {
-        if (IsServer)
-        {
-            SpawnedUnits.Add(new NetworkObjectReference(unit));
-        }
-    }
+    #endregion
 }
